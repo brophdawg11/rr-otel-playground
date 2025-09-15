@@ -1,0 +1,44 @@
+{
+  "name": "otel",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "react-router build",
+    "dev": "node --import ./app/instrumentation.js server.js",
+    "start": "node --import ./app/instrumentation.js server.js",
+    "typecheck": "react-router typegen && tsc -b"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.64.1",
+    "@opentelemetry/exporter-metrics-otlp-proto": "^0.205.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "^0.205.0",
+    "@opentelemetry/resources": "^2.1.0",
+    "@opentelemetry/sdk-metrics": "^2.1.0",
+    "@opentelemetry/sdk-node": "^0.205.0",
+    "@opentelemetry/semantic-conventions": "^1.37.0",
+    "@react-router/express": "0.0.0-experimental-61f2749d7",
+    "@react-router/fs-routes": "0.0.0-experimental-61f2749d7",
+    "@react-router/node": "0.0.0-experimental-61f2749d7",
+    "compression": "^1.8.1",
+    "express": "^5.1.0",
+    "import-in-the-middle": "^1.14.2",
+    "isbot": "^5.1.27",
+    "morgan": "^1.10.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router": "0.0.0-experimental-61f2749d7"
+  },
+  "devDependencies": {
+    "@react-router/dev": "0.0.0-experimental-61f2749d7",
+    "@types/express": "^5.0.1",
+    "@types/express-serve-static-core": "^5.0.6",
+    "@types/morgan": "^1.9.9",
+    "@types/node": "^20",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.3",
+    "vite-tsconfig-paths": "^5.1.4"
+  }
+}
