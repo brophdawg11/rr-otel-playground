@@ -7,6 +7,15 @@ import {
   ScrollRestoration,
 } from "react-router";
 
+export function sleep(ms = Math.round(Math.random() * 500)) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+export async function loader() {
+  await sleep();
+  return null;
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">

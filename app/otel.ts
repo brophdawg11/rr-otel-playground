@@ -1,122 +1,108 @@
 import * as otel from "@opentelemetry/api";
-import type { Context, Span, Tracer } from "@opentelemetry/api";
-import { createContext, RouterContextProvider } from "react-router";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  MiddlewareFunction,
+  ServerBuild,
+} from "react-router";
 
-export type OtelContextContainer = {
-  tracer: Tracer;
-  navigateContext: Context;
-  navigateSpan: Span;
-  loaderContexts: Map<string, Context>;
-  loaderSpans: Map<string, Span>;
-};
+export const tracer = otel.trace.getTracer("react-router");
 
-export const otelContextContainer = createContext<OtelContextContainer>();
+type Route = NonNullable<ServerBuild["routes"][string]>;
+type RouteModule = Route["module"];
 
-export async function getInstrumentedBuild() {
-  let build = await import("virtual:react-router/server-build");
-  for (let [routeId, route] of Object.entries(build.routes)) {
-    if (!route?.module) continue;
+export type RouteModuleEnhancer = (
+  module: RouteModule,
+  route: Readonly<Route>
+) => RouteModule;
 
-    // Using manual instrumentation in index route as an example
-    if (routeId === "routes/_index") continue;
-
-    let enhancedRouteModule = { ...route?.module };
-    route.module = enhancedRouteModule;
-
-    if (enhancedRouteModule.loader) {
-      let loader = enhancedRouteModule.loader;
-      enhancedRouteModule.loader = async (args: any) => {
-        let rrContext = args.context as RouterContextProvider;
-        let otelContext = rrContext.get(otelContextContainer);
-
-        if (!otelContext.navigateContext) {
-          // This should never happen, but just in case...
-          console.warn(
-            `No navigate context found for route ${routeId}, running loader without span.`
-          );
-          return loader(args);
-        }
-
-        return otelContext.tracer.startActiveSpan(
-          `loader (${routeId})`,
-          {},
-          otelContext.navigateContext,
-          async (span) => {
-            try {
-              return await loader(args);
-            } finally {
-              span.end();
-            }
-          }
-        );
-      };
-    }
+export function enhanceRoutes(
+  build: ServerBuild,
+  enhancers: RouteModuleEnhancer[]
+): ServerBuild {
+  if (enhancers.length === 0) {
+    return build;
   }
-  return build;
+
+  const composed = enhancers.reduce(
+    (prev, curr) => (x, id) => prev(curr(x, id), id)
+  );
+
+  const routes = Object.fromEntries(
+    Object.entries(build.routes).map(([routeId, route]) => {
+      if (!route) {
+        return [routeId, route];
+      }
+
+      return [routeId, { ...route, module: composed(route.module, route) }];
+    })
+  );
+
+  return { ...build, routes };
 }
 
-export function getReactRouterOtelEvents(
-  events: EventTarget = new EventTarget()
-) {
-  events.addEventListener("navigate:start", (e) => {
-    let evt = e as CustomEvent;
-    console.log("✨ navigate:start event", evt.detail.request.url);
+export function instrumentBuild(build: ServerBuild) {
+  return enhanceRoutes(build, [wrapHandlers]);
+}
 
-    let tracer = otel.trace.getTracer("react-router");
-    let rrContext = evt.detail.context as RouterContextProvider;
-    let navigateSpan = tracer.startSpan("navigate");
-    let navigateContext = otel.trace.setSpan(
-      otel.context.active(),
-      navigateSpan
+function wrapHandlers(routeModule: RouteModule, route: Route) {
+  let enhancedRouteModule = { ...routeModule };
+
+  // Wrap any existing middlewares
+  if (enhancedRouteModule.middleware) {
+    enhancedRouteModule.middleware = enhancedRouteModule.middleware.map(
+      (middleware, i) => async (args, next) => {
+        let res = await wrapOtelSpan(`middleware #${i} (${route.id})`, () => {
+          return middleware(args, next);
+        });
+        return res;
+      }
     );
-    let otelContext = {
-      tracer: tracer,
-      navigateContext,
-      navigateSpan,
-      loaderContexts: new Map(),
-      loaderSpans: new Map(),
-    };
-    rrContext.set(otelContextContainer, otelContext);
-  });
+  }
 
-  events.addEventListener("navigate:end", (e) => {
-    let evt = e as CustomEvent;
-    console.log("✨ navigate:end event", evt.detail.request.url);
+  // Prepend the `otelMiddleware` to the root route to wrap `next()`
+  if (route.id === "root") {
+    enhancedRouteModule.middleware = [
+      otelMiddleware,
+      ...(enhancedRouteModule.middleware ?? []),
+    ];
+  }
 
-    let rrContext = evt.detail.context as RouterContextProvider;
-    rrContext.get(otelContextContainer).navigateSpan.end();
-  });
+  // Wrap loader and action functions
+  if (enhancedRouteModule.loader) {
+    let og = enhancedRouteModule.loader;
+    enhancedRouteModule.loader = (args: LoaderFunctionArgs) =>
+      wrapOtelSpan(`loader (${route.id})`, () => og(args));
+  }
 
-  events.addEventListener("loader:start", (e) => {
-    let evt = e as CustomEvent;
-    console.log("✨ loader:start event", evt.detail.routeId);
+  if (enhancedRouteModule.action) {
+    let og = enhancedRouteModule.action;
+    enhancedRouteModule.action = (args: ActionFunctionArgs) =>
+      wrapOtelSpan(`action (${route.id})`, () => og(args));
+  }
 
-    if (evt.detail.routeId === "routes/_index") {
-      let rrContext = evt.detail.context as RouterContextProvider;
-      let otelContext = rrContext.get(otelContextContainer);
-      let loaderSpan = otelContext.tracer.startSpan(
-        `loader (${evt.detail.routeId})`
-      );
-      let loaderContext = otel.trace.setSpan(
-        otelContext.navigateContext,
-        loaderSpan
-      );
-
-      otelContext.loaderContexts.set(evt.detail.routeId, loaderContext);
-      otelContext.loaderSpans.set(evt.detail.routeId, loaderSpan);
-    }
-  });
-
-  events.addEventListener("loader:end", (e) => {
-    let evt = e as CustomEvent;
-    console.log("✨ loader:end event", evt.detail.routeId);
-
-    if (evt.detail.routeId === "routes/_index") {
-      let rrContext = evt.detail.context as RouterContextProvider;
-      let otelContext = rrContext.get(otelContextContainer);
-      otelContext.loaderSpans.get(evt.detail.routeId)?.end();
-    }
-  });
-
-  return events;
+  return enhancedRouteModule;
 }
+
+function wrapOtelSpan<T>(label: string, cb: () => T) {
+  return tracer.startActiveSpan(label, async (span) => {
+    try {
+      let val = await cb();
+      return val;
+    } finally {
+      span.end();
+    }
+  });
+}
+
+export const otelMiddleware: MiddlewareFunction<Response> = async (_, next) => {
+  let tracer = otel.trace.getTracer("react-router");
+  return tracer.startActiveSpan("request", async (span) => {
+    try {
+      let response = await next();
+      return response;
+    } finally {
+      span.end();
+    }
+  });
+};

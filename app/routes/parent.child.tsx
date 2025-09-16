@@ -1,25 +1,25 @@
 import { Outlet } from "react-router";
+import { tracer } from "~/otel";
+import { sleep } from "~/root";
 import type { Route } from "./+types/parent";
-import { otelContextContainer } from "~/otel";
-import type { Tracer } from "@opentelemetry/api";
 
-// This route shows how we would can simplify getting back on track so
-// startActiveSpan() works by instrumenting the build
-
-export async function loader({ context }: Route.LoaderArgs) {
-  let tracer = context.get(otelContextContainer).tracer;
-  await new Promise((r) => setTimeout(r, 500));
-  await getThing3(tracer);
+export async function loader() {
+  await getThing4();
+  await getThing5();
   return new Date().toISOString();
 }
 
-async function getThing3(tracer: Tracer) {
-  return tracer.startActiveSpan("get thing 3", async (span) => {
-    try {
-      await new Promise((r) => setTimeout(r, 500));
-    } finally {
-      span.end();
-    }
+async function getThing4() {
+  return tracer.startActiveSpan("get thing 4", async (span) => {
+    await sleep();
+    span.end();
+  });
+}
+
+async function getThing5() {
+  return tracer.startActiveSpan("get thing 5", async (span) => {
+    await sleep();
+    span.end();
   });
 }
 
