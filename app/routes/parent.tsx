@@ -3,6 +3,21 @@ import { tracer } from "~/otel";
 import { sleep } from "~/root";
 import type { Route } from "./+types/parent";
 
+export const middleware: Route.MiddlewareFunction[] = [
+  async (_, next) => {
+    await sleep();
+    let res = await next();
+    await sleep();
+    return res;
+  },
+  async (_, next) => {
+    await sleep();
+    let res = await next();
+    await sleep();
+    return res;
+  },
+];
+
 export async function loader() {
   await getThing1();
   return new Date().toISOString();

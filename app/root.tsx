@@ -6,6 +6,16 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
+import type { Route } from "./+types/root";
+
+export const middleware: Route.MiddlewareFunction[] = [
+  async (_, next) => {
+    await sleep();
+    let res = await next();
+    await sleep();
+    return res;
+  },
+];
 
 export function sleep(ms = Math.round(Math.random() * 500)) {
   return new Promise((r) => setTimeout(r, ms));

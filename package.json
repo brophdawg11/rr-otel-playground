@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
-    "dev": "node --import ./server/instrumentation.js server.js",
+    "dev": "NODE_ENV=development node --import ./server/instrumentation.js server.js",
     "start": "node --import ./server/instrumentation.js server.js",
     "typecheck": "react-router typegen && tsc -b"
   },
@@ -22,7 +22,6 @@
     "@react-router/node": "7.9.1",
     "compression": "^1.8.1",
     "express": "^5.1.0",
-    "import-in-the-middle": "^1.14.2",
     "isbot": "^5.1.27",
     "morgan": "^1.10.0",
     "react": "^19.1.0",

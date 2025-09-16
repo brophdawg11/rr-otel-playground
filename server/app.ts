@@ -9,8 +9,4 @@ async function getBuild() {
   return instrumentBuild(build);
 }
 
-app.use(
-  createRequestHandler({
-    build: getBuild,
-  })
-);
+app.use(createRequestHandler({ build: getBuild }));

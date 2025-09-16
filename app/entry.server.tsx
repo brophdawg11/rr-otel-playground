@@ -16,19 +16,22 @@ export default function handleRequestWithOtel(
   responseHeaders: Headers,
   routerContext: EntryContext
 ) {
-  return tracer.startActiveSpan("handleRequest", async (span) => {
-    try {
-      let res = await handleRequest(
-        request,
-        responseStatusCode,
-        responseHeaders,
-        routerContext
-      );
-      return res;
-    } finally {
-      span.end();
+  return tracer.startActiveSpan(
+    "handleRequest (entry.server)",
+    async (span) => {
+      try {
+        let res = await handleRequest(
+          request,
+          responseStatusCode,
+          responseHeaders,
+          routerContext
+        );
+        return res;
+      } finally {
+        span.end();
+      }
     }
-  });
+  );
 }
 
 function handleRequest(

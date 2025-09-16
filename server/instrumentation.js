@@ -11,7 +11,7 @@ import {
 
 const sdk = new NodeSDK({
   resource: resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: "example-app",
+    [ATTR_SERVICE_NAME]: "rr-otel-playground",
     [ATTR_SERVICE_VERSION]: "0.0.0",
   }),
   traceExporter: new OTLPTraceExporter(),
