@@ -3,6 +3,7 @@ import type {
   ActionFunctionArgs,
   LoaderFunctionArgs,
   MiddlewareFunction,
+  RouterContextProvider,
   ServerBuild,
 } from "react-router";
 
@@ -42,6 +43,20 @@ export function enhanceRoutes(
 }
 
 export function instrumentBuild(build: ServerBuild) {
+  // Instrument entry.server default (`handleRequest`) export
+  if (build.entry.module.default) {
+    let og = build.entry.module.default;
+    build.entry.module = {
+      ...build.entry.module,
+      async default(...args) {
+        let res = await wrapOtelSpan("handleRequest (entry.server)", () => {
+          return og(...args);
+        });
+        return res;
+      },
+    };
+  }
+
   return enhanceRoutes(build, [wrapHandlers]);
 }
 
