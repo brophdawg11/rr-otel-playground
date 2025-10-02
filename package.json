@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
-    "dev": "NODE_ENV=development node --import ./server/instrumentation.js server.js",
-    "start": "node --import ./server/instrumentation.js server.js",
+    "dev": "node --import ./app/otel.js ./node_modules/.bin/react-router dev",
+    "start": "node --import ./app/otel.js ./node_modules/.bin/react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc -b"
   },
   "dependencies": {
@@ -17,22 +17,16 @@
     "@opentelemetry/sdk-metrics": "^2.1.0",
     "@opentelemetry/sdk-node": "^0.205.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
-    "@react-router/express": "7.9.1",
-    "@react-router/fs-routes": "7.9.1",
-    "@react-router/node": "7.9.1",
-    "compression": "^1.8.1",
-    "express": "^5.1.0",
+    "@react-router/fs-routes": "0.0.0-experimental-3df673e",
+    "@react-router/node": "0.0.0-experimental-3df673e",
+    "@react-router/serve": "0.0.0-experimental-3df673e",
     "isbot": "^5.1.27",
-    "morgan": "^1.10.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router": "7.9.1"
+    "react-router": "0.0.0-experimental-3df673e"
   },
   "devDependencies": {
-    "@react-router/dev": "7.9.1",
-    "@types/express": "^5.0.1",
-    "@types/express-serve-static-core": "^5.0.6",
-    "@types/morgan": "^1.9.9",
+    "@react-router/dev": "0.0.0-experimental-3df673e",
     "@types/node": "^20",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",

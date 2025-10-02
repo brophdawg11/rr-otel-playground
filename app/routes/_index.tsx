@@ -1,4 +1,4 @@
-import { tracer } from "~/otel";
+import { tracer } from "~/instrumentations";
 import { sleep } from "~/root";
 
 export async function loader() {

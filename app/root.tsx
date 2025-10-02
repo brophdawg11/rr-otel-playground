@@ -9,7 +9,13 @@ import {
 import type { Route } from "./+types/root";
 
 export const middleware: Route.MiddlewareFunction[] = [
-  async (_, next) => {
+  async ({ request }, next) => {
+    if (
+      request.url.endsWith("/.well-known/appspecific/com.chrome.devtools.json")
+    ) {
+      return new Response(null, { status: 404 });
+    }
+
     await sleep();
     let res = await next();
     await sleep();

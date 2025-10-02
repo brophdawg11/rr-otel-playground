@@ -1,5 +1,5 @@
 import { Outlet } from "react-router";
-import { tracer } from "~/otel";
+import { tracer } from "~/instrumentations";
 import { sleep } from "~/root";
 import type { Route } from "./+types/parent";
 
