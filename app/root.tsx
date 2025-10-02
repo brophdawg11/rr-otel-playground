@@ -7,8 +7,10 @@ import {
   ScrollRestoration,
 } from "react-router";
 import type { Route } from "./+types/root";
+import { otelMiddleware } from "./instrumentations";
 
 export const middleware: Route.MiddlewareFunction[] = [
+  otelMiddleware,
   async ({ request }, next) => {
     if (
       request.url.endsWith("/.well-known/appspecific/com.chrome.devtools.json")

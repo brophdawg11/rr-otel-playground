@@ -1,5 +1,6 @@
 import * as otel from "@opentelemetry/api";
 import type {
+  MiddlewareFunction,
   unstable_ClientInstrumentation,
   unstable_ServerInstrumentation,
 } from "react-router";
@@ -51,6 +52,17 @@ async function log(label: string, cb: () => Promise<void>) {
 // OTEL Instrumentations
 export const tracer = otel.trace.getTracer("react-router");
 
+// This is wired up to the root route to start the root span for the RR handler
+export const otelMiddleware: MiddlewareFunction<Response> = (_, next) => {
+  return tracer.startActiveSpan("request", async (span) => {
+    try {
+      return await next();
+    } finally {
+      span.end();
+    }
+  });
+};
+
 export const otelInstrumentations: unstable_ServerInstrumentation = {
   handler({ instrument }) {
     instrument({
@@ -74,22 +86,6 @@ export const otelInstrumentations: unstable_ServerInstrumentation = {
         await wrapOtelSpan(`action (${id})`, () => handler());
       },
     });
-
-    if (id === "root") {
-      instrument({
-        async middleware(impl) {
-          let tracer = otel.trace.getTracer("react-router");
-          return tracer.startActiveSpan("request", async (span) => {
-            try {
-              let response = await impl();
-              return response;
-            } finally {
-              span.end();
-            }
-          });
-        },
-      });
-    }
   },
 };
 
