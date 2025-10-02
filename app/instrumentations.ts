@@ -1,17 +1,11 @@
 import * as otel from "@opentelemetry/api";
-import type { ServerBuild } from "react-router";
-import type { HydratedRouterProps } from "react-router/dom";
-
-export type ServerInstrumentation = NonNullable<
-  ServerBuild["entry"]["module"]["unstable_instrumentations"]
->[0];
-
-export type ClientInstrumentation = NonNullable<
-  HydratedRouterProps["unstable_instrumentations"]
->[0];
+import type {
+  unstable_ClientInstrumentation,
+  unstable_ServerInstrumentation,
+} from "react-router";
 
 // Logging Instrumentations
-export const serverLoggingInstrumentations: ServerInstrumentation = {
+export const serverLoggingInstrumentations: unstable_ServerInstrumentation = {
   handler({ instrument }) {
     instrument({
       async request(fn, info) {
@@ -29,7 +23,7 @@ export const serverLoggingInstrumentations: ServerInstrumentation = {
   },
 };
 
-export const clientLoggingInstrumentations: ClientInstrumentation = {
+export const clientLoggingInstrumentations: unstable_ClientInstrumentation = {
   router({ instrument }) {
     instrument({
       navigate: (fn, info) => log(`navigate ${info.to}`, fn),
@@ -57,7 +51,7 @@ async function log(label: string, cb: () => Promise<void>) {
 // OTEL Instrumentations
 export const tracer = otel.trace.getTracer("react-router");
 
-export const otelInstrumentations: ServerInstrumentation = {
+export const otelInstrumentations: unstable_ServerInstrumentation = {
   handler({ instrument }) {
     instrument({
       async request(handler, info) {
@@ -111,7 +105,7 @@ function wrapOtelSpan<T>(label: string, cb: () => T) {
 }
 
 // window.performance instrumentations
-export const windowPerfInstrumentations: ClientInstrumentation = {
+export const windowPerfInstrumentations: unstable_ClientInstrumentation = {
   router({ instrument }) {
     instrument({
       navigate: (fn, info) => perf(`navigate ${info.to}`, fn),
@@ -139,35 +133,3 @@ async function perf<T>(label: string, cb: () => Promise<void>) {
     window?.performance.measure(label, startMark, endMark);
   }
 }
-
-// Unabstracted Example
-// const unabstractedInstrumentations: ClientInstrumentation = {
-//   router({ instrument }) {
-//     instrument({
-//       async navigate(fn, info) {
-//         console.log(`➡️ navigate ${info.to}`);
-//         await fn();
-//         console.log(`⬅️ navigate ${info.to}`);
-//       },
-//       async fetch(fn, info) {
-//         console.log(`➡️ navigate ${info.to}`);
-//         await fn();
-//         console.log(`⬅️ navigate ${info.to}`);
-//       },
-//     });
-//   },
-//   route({ instrument, id }) {
-//     instrument({
-//       async loader(fn, info) {
-//         console.log(`➡️ loader ${info.to}`);
-//         await fn();
-//         console.log(`⬅️ loader ${info.to}`);
-//       },
-//       async action(fn, info) {
-//         console.log(`➡️ action ${info.to}`);
-//         await fn();
-//         console.log(`⬅️ action ${info.to}`);
-//       },
-//     });
-//   },
-// };
